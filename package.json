@@ -1,0 +1,43 @@
+{
+  "name": "colorphoto",
+  "version": "1.0.0",
+  "description": "图片颜色提取工具 - 从JPG图片中提取主要颜色并可视化显示",
+  "main": "src/main/main.js",
+  "scripts": {
+    "dev": "electron .",
+    "build": "electron-builder --win",
+    "pack": "electron-builder --dir"
+  },
+  "author": "ColorPhoto",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "dependencies": {
+    "piexifjs": "^1.0.6"
+  },
+  "build": {
+    "appId": "com.colorphoto.app",
+    "productName": "ColorPhoto",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "ColorPhoto.exe"
+    },
+    "files": [
+      "src/**/*",
+      "node_modules/**/*"
+    ]
+  }
+}

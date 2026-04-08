@@ -1,0 +1,29 @@
+{
+  "appId": "com.colorphoto.app",
+  "productName": "ColorPhoto",
+  "directories": {
+    "output": "dist"
+  },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "src/assets/icon.ico",
+    "signingHashTypes": [],
+    "sign": false
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  },
+  "files": [
+    "src/**/*",
+    "node_modules/**/*"
+  ]
+}
