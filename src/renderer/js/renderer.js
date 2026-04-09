@@ -77,6 +77,23 @@ function setupCallbacks() {
   controlPanel.setCallback('onDisplayModeChange', (mode) => {
     appState.displayMode = mode;
     imageProcessor.setDisplayMode(mode);
+    const sortedColors = colorExtractor.sortColors(appState.allExtractedColors, appState.colorSort);
+    // 方格模式始终使用前4个颜色
+    if (mode === 'grid') {
+      const gridColors = sortedColors.slice(0, 4);
+      imageProcessor.setColors(gridColors);
+      // 侧边栏显示全部5个颜色
+      imagePreview.setColors(sortedColors.slice(0, 5));
+      controlPanel.setColors(gridColors);
+    } else {
+      const limitedColors = mode === 'vertical' && appState.colorCount < 5 
+        ? sortedColors.slice(0, appState.colorCount) 
+        : sortedColors;
+      imageProcessor.setColors(limitedColors);
+      // 侧边栏显示全部5个颜色
+      imagePreview.setColors(sortedColors.slice(0, 5));
+      controlPanel.setColors(limitedColors);
+    }
     renderImage();
   });
   
@@ -100,7 +117,8 @@ function setupCallbacks() {
       }
       appState.extractedColors = limitedColors;
       imageProcessor.setColors(limitedColors);
-      imagePreview.setColors(limitedColors);
+      // 侧边栏预览始终显示全部5个颜色
+      imagePreview.setColors(sortedColors.slice(0, 5));
       controlPanel.setColors(limitedColors);
       renderImage();
     }
@@ -145,6 +163,9 @@ function setupCallbacks() {
   imagePreview.setOnColorsChange((colors) => {
     appState.extractedColors = colors;
     imageProcessor.setColors(colors);
+    // 侧边栏显示全部5个颜色（保持排序后的顺序）
+    const sortedColors = colorExtractor.sortColors(appState.allExtractedColors, appState.colorSort);
+    imagePreview.setColors(sortedColors.slice(0, 5));
     controlPanel.setColors(colors);
     renderImage();
   });

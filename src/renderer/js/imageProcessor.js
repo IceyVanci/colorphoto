@@ -24,6 +24,9 @@ class ImageProcessor {
     
     // 色块位置数组
     this.blockPositions = [];
+    
+    // 用户是否已自定义位置（拖动过）
+    this.userHasCustomPositions = false;
   }
 
   initCanvas(canvas) {
@@ -43,21 +46,87 @@ class ImageProcessor {
 
   setColors(colors) {
     this.colors = colors;
-    this.initBlockPositions();
+    // 如果用户已自定义位置且颜色数量不变，不重置位置
+    if (!this.userHasCustomPositions || colors.length !== this.blockPositions.length) {
+      if (this.displayMode === 'vertical' && this.blockPositions.length > 0) {
+        // 纵向模式：保持中心X和Y位置不变，重新计算位置
+        const centerX = this.blockPositions.reduce((sum, p) => sum + p.x + p.width / 2, 0) / this.blockPositions.length;
+        const centerY = this.blockPositions.reduce((sum, p) => sum + p.y + p.height / 2, 0) / this.blockPositions.length;
+        const totalHeight = colors.length * this.blockSize;
+        const newStartY = centerY - totalHeight / 2;
+        
+        this.blockPositions = [];
+        colors.forEach((color, index) => {
+          this.blockPositions.push({
+            x: centerX - this.blockSize / 2,
+            y: newStartY + index * this.blockSize,
+            width: this.blockSize,
+            height: this.blockSize
+          });
+        });
+      } else {
+        this.initBlockPositions();
+      }
+    }
   }
 
   setDisplayMode(mode) {
     this.displayMode = mode;
-    this.initBlockPositions();
+    // 如果用户已自定义位置，不重置位置
+    if (!this.userHasCustomPositions) {
+      this.initBlockPositions();
+    }
   }
 
   setEdgePosition(position) {
     this.edgePosition = position;
   }
 
-  setBlockSize(size) {
-    this.blockSize = size;
-    this.initBlockPositions();
+  setBlockSize(newSize) {
+    // 计算当前整体中心位置
+    const oldSize = this.blockSize;
+    const oldPositions = [...this.blockPositions];
+    
+    // 计算中心位置
+    let centerX = 0, centerY = 0;
+    if (this.blockPositions.length > 0) {
+      centerX = this.blockPositions.reduce((sum, p) => sum + p.x + p.width / 2, 0) / this.blockPositions.length;
+      centerY = this.blockPositions.reduce((sum, p) => sum + p.y + p.height / 2, 0) / this.blockPositions.length;
+    }
+    
+    this.blockSize = newSize;
+    
+    // 重新计算位置，保持中心不变
+    if (this.displayMode === 'vertical') {
+      // 纵向模式：保持中心Y不变
+      const blockCount = this.blockPositions.length;
+      const totalHeight = blockCount * this.blockSize;
+      const newStartY = centerY - totalHeight / 2;
+      
+      this.blockPositions.forEach((pos, index) => {
+        pos.width = this.blockSize;
+        pos.height = this.blockSize;
+        pos.x = oldPositions[index].x; // X位置不变
+        pos.y = newStartY + index * this.blockSize;
+      });
+    } else if (this.displayMode === 'grid') {
+      // 方格模式：保持中心位置不变
+      const totalWidth = 2 * this.blockSize;
+      const totalHeight = 2 * this.blockSize;
+      const newStartX = centerX - totalWidth / 2;
+      const newStartY = centerY - totalHeight / 2;
+      
+      this.blockPositions.forEach((pos, index) => {
+        const row = Math.floor(index / 2);
+        const col = index % 2;
+        pos.width = this.blockSize;
+        pos.height = this.blockSize;
+        pos.x = newStartX + col * this.blockSize;
+        pos.y = newStartY + row * this.blockSize;
+      });
+    }
+    
+    this.render();
   }
 
   setShowLabel(show) {
@@ -70,6 +139,55 @@ class ImageProcessor {
 
   setColorNameLanguage(lang) {
     this.colorNameLanguage = lang;
+  }
+
+  // 绘制圆角矩形（可指定哪些角是圆角）
+  fillRoundedRect(ctx, x, y, width, height, radius, options = {}) {
+    const { topLeft = true, topRight = true, bottomRight = true, bottomLeft = true } = options;
+    
+    ctx.beginPath();
+    
+    // 从左上角开始
+    if (topLeft) {
+      ctx.moveTo(x + radius, y);
+    } else {
+      ctx.moveTo(x, y);
+    }
+    
+    // 上边到右上角
+    if (topRight) {
+      ctx.lineTo(x + width - radius, y);
+      ctx.arcTo(x + width, y, x + width, y + radius, radius);
+    } else {
+      ctx.lineTo(x + width, y);
+    }
+    
+    // 右边到右下角
+    if (bottomRight) {
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius);
+    } else {
+      ctx.lineTo(x + width, y + height);
+    }
+    
+    // 下边到左下角
+    if (bottomLeft) {
+      ctx.lineTo(x + radius, y + height);
+      ctx.arcTo(x, y + height, x, y + height - radius, radius);
+    } else {
+      ctx.lineTo(x, y + height);
+    }
+    
+    // 左边回到左上角
+    if (topLeft) {
+      ctx.lineTo(x, y + radius);
+      ctx.arcTo(x, y, x + radius, y, radius);
+    } else {
+      ctx.lineTo(x, y);
+    }
+    
+    ctx.closePath();
+    ctx.fill();
   }
 
   // 初始化色块位置
@@ -229,6 +347,7 @@ class ImageProcessor {
     this.canvas.addEventListener('mouseup', () => {
       if (this.isDragging) {
         this.isDragging = false;
+        this.userHasCustomPositions = true;
         this.canvas.style.cursor = 'default';
       }
     });
@@ -236,6 +355,7 @@ class ImageProcessor {
     this.canvas.addEventListener('mouseleave', () => {
       if (this.isDragging) {
         this.isDragging = false;
+        this.userHasCustomPositions = true;
         this.canvas.style.cursor = 'default';
       }
     });
@@ -256,18 +376,50 @@ class ImageProcessor {
     // 方格模式只使用前4个颜色
     const renderColors = displayMode === 'grid' ? colors.slice(0, 4) : colors;
     
+    // 圆角半径（色块尺寸的12%）
+    const cornerRadius = blockSize * 0.12;
+    
     renderColors.forEach((color, index) => {
       const pos = this.blockPositions[index] || { x: 0, y: 0, width: blockSize, height: blockSize };
+      const isFirst = index === 0;
+      const isLast = index === renderColors.length - 1;
       
-      // 绘制色块
+      // 确定哪些角需要圆角
+      let roundedCorners = { topLeft: false, topRight: false, bottomRight: false, bottomLeft: false };
+      
+      if (displayMode === 'vertical') {
+        // 纵向模式：顶部色块只有左上右上圆角，底部色块只有左下右下圆角
+        if (isFirst) {
+          roundedCorners = { topLeft: true, topRight: true, bottomRight: false, bottomLeft: false };
+        } else if (isLast) {
+          roundedCorners = { topLeft: false, topRight: false, bottomRight: true, bottomLeft: true };
+        }
+      } else if (displayMode === 'grid') {
+        // 方格模式：2x2布局，外侧四角各只有一个圆角
+        // index 0: 左上角(0,0) -> topLeft
+        // index 1: 右上角(1,0) -> topRight
+        // index 2: 左下角(0,1) -> bottomLeft
+        // index 3: 右下角(1,1) -> bottomRight
+        if (index === 0) {
+          roundedCorners = { topLeft: true, topRight: false, bottomRight: false, bottomLeft: false };
+        } else if (index === 1) {
+          roundedCorners = { topLeft: false, topRight: true, bottomRight: false, bottomLeft: false };
+        } else if (index === 2) {
+          roundedCorners = { topLeft: false, topRight: false, bottomRight: false, bottomLeft: true };
+        } else if (index === 3) {
+          roundedCorners = { topLeft: false, topRight: false, bottomRight: true, bottomLeft: false };
+        }
+      }
+      
+      // 绘制色块（使用圆角矩形）
       ctx.fillStyle = color.hex;
-      ctx.fillRect(pos.x, pos.y, pos.width, pos.height);
+      this.fillRoundedRect(ctx, pos.x, pos.y, pos.width, pos.height, cornerRadius, roundedCorners);
       
-      // 纵向和边缘模式添加描边，方格模式不描边
+      // 绘制描边
       if (displayMode !== 'grid') {
         ctx.strokeStyle = '#333';
         ctx.lineWidth = 1;
-        ctx.strokeRect(pos.x, pos.y, pos.width, pos.height);
+        ctx.stroke();
       }
 
       // 绘制色号
