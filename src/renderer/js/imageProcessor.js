@@ -22,11 +22,15 @@ class ImageProcessor {
     this.dragOffsetY = 0;
     this.initialPositions = [];
     
-    // 色块位置数组
-    this.blockPositions = [];
+    // 色块位置数组（按模式独立存储）
+    this.modePositions = {
+      vertical: { positions: [], userHasCustom: false },
+      grid: { positions: [], userHasCustom: false },
+      edge: { positions: [], userHasCustom: false }
+    };
     
-    // 用户是否已自定义位置（拖动过）
-    this.userHasCustomPositions = false;
+    // 当前使用的位置引用
+    this.blockPositions = [];
   }
 
   initCanvas(canvas) {
@@ -46,12 +50,14 @@ class ImageProcessor {
 
   setColors(colors) {
     this.colors = colors;
+    const modeData = this.modePositions[this.displayMode];
+    
     // 如果用户已自定义位置且颜色数量不变，不重置位置
-    if (!this.userHasCustomPositions || colors.length !== this.blockPositions.length) {
-      if (this.displayMode === 'vertical' && this.blockPositions.length > 0) {
+    if (!modeData.userHasCustom || colors.length !== modeData.positions.length) {
+      if (this.displayMode === 'vertical' && modeData.positions.length > 0) {
         // 纵向模式：保持中心X和Y位置不变，重新计算位置
-        const centerX = this.blockPositions.reduce((sum, p) => sum + p.x + p.width / 2, 0) / this.blockPositions.length;
-        const centerY = this.blockPositions.reduce((sum, p) => sum + p.y + p.height / 2, 0) / this.blockPositions.length;
+        const centerX = modeData.positions.reduce((sum, p) => sum + p.x + p.width / 2, 0) / modeData.positions.length;
+        const centerY = modeData.positions.reduce((sum, p) => sum + p.y + p.height / 2, 0) / modeData.positions.length;
         const totalHeight = colors.length * this.blockSize;
         const newStartY = centerY - totalHeight / 2;
         
@@ -64,16 +70,28 @@ class ImageProcessor {
             height: this.blockSize
           });
         });
+        modeData.positions = [...this.blockPositions];
       } else {
         this.initBlockPositions();
       }
+    } else {
+      // 使用保存的位置
+      this.blockPositions = [...modeData.positions];
     }
   }
 
   setDisplayMode(mode) {
+    // 切换模式前保存当前位置到对应模式
+    this.modePositions[this.displayMode].positions = [...this.blockPositions];
+    
     this.displayMode = mode;
-    // 如果用户已自定义位置，不重置位置
-    if (!this.userHasCustomPositions) {
+    
+    // 如果新模式已有保存的位置，加载它
+    const modeData = this.modePositions[mode];
+    if (modeData.positions.length > 0 && modeData.userHasCustom) {
+      this.blockPositions = [...modeData.positions];
+      this.render();
+    } else {
       this.initBlockPositions();
     }
   }
@@ -347,7 +365,9 @@ class ImageProcessor {
     this.canvas.addEventListener('mouseup', () => {
       if (this.isDragging) {
         this.isDragging = false;
-        this.userHasCustomPositions = true;
+        // 保存拖拽后的位置到当前模式
+        this.modePositions[this.displayMode].positions = [...this.blockPositions];
+        this.modePositions[this.displayMode].userHasCustom = true;
         this.canvas.style.cursor = 'default';
       }
     });
@@ -355,7 +375,9 @@ class ImageProcessor {
     this.canvas.addEventListener('mouseleave', () => {
       if (this.isDragging) {
         this.isDragging = false;
-        this.userHasCustomPositions = true;
+        // 保存拖拽后的位置到当前模式
+        this.modePositions[this.displayMode].positions = [...this.blockPositions];
+        this.modePositions[this.displayMode].userHasCustom = true;
         this.canvas.style.cursor = 'default';
       }
     });
