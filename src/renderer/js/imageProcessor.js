@@ -13,8 +13,8 @@ class ImageProcessor {
     this.edgePosition = 'right';
     this.blockSize = 150;
     this.showLabel = true;
-    this.showColorName = true;
-    this.colorNameLanguage = 'cn';
+    this.showColorName = false;
+    this.colorNameLanguage = 'en';
     
     // 拖拽状态（五个色块整体拖动）
     this.isDragging = false;
@@ -592,9 +592,8 @@ class ImageProcessor {
           ctx.fillText(text, hexX, hexY);
           
         } else {
-          // 边缘模式：色号在色块内部居中，无衬底，白色文字
-          const centerX = pos.x + pos.width / 2;
-          const centerY = pos.y + pos.height / 2;
+          // 边缘模式：色号在边缘1/3处，颜色名称在内侧1/3处
+          const isVerticalLabel = edgePosition === 'left' || edgePosition === 'right';
           
           // 字体大小是色块短边的三分之一
           const shortSide = Math.min(pos.width, pos.height);
@@ -602,29 +601,87 @@ class ImageProcessor {
           const strokeWidth = Math.max(1, fontSize * 0.06);
           
           ctx.font = `bold ${fontSize}px 'MiSans', monospace`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          
-          const isVerticalLabel = edgePosition === 'left' || edgePosition === 'right';
           
           if (isVerticalLabel) {
-            // 竖向显示（旋转90度）
+            // 竖向边缘（left/right）
+            // 旋转后的坐标系：x 对应原来的垂直方向（居中），y 对应原来的水平方向
             ctx.save();
-            ctx.translate(centerX, centerY);
+            ctx.translate(pos.x + pos.width / 2, pos.y + pos.height / 2);
             ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // right 模式：色号在右1/3处，颜色名称在左1/3处（从边缘向内1/3）
+            // left 模式：色号在左1/3处，颜色名称在右1/3处
+            // 旋转后 y 轴范围 [-pos.width/2, pos.width/2]，从边缘到1/3处 = pos.width/2 - pos.width/3 = pos.width/6
+            const isRight = edgePosition === 'right';
+            const hexY = isRight ? pos.width / 6 : -pos.width / 6;
+            const nameY = isRight ? -pos.width / 6 : pos.width / 6;
+            
+            // 绘制颜色名称（在内侧）
+            if (showColorName) {
+              let colorName = getColorName(color.hex, colorNameLanguage);
+              if (colorNameLanguage === 'cn' && colorName.endsWith('色')) {
+                colorName = colorName.slice(0, -1);
+              }
+              ctx.strokeStyle = '#fff';
+              ctx.lineWidth = strokeWidth;
+              ctx.strokeText(colorName, 0, nameY);
+              ctx.strokeStyle = '#000';
+              ctx.lineWidth = strokeWidth;
+              ctx.strokeText(colorName, 0, nameY);
+              ctx.fillStyle = color.hex;
+              ctx.fillText(colorName, 0, nameY);
+            }
+            
+            // 绘制色号（在边缘）
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = strokeWidth;
+            ctx.strokeText(text, 0, hexY);
             ctx.strokeStyle = '#000';
             ctx.lineWidth = strokeWidth;
-            ctx.strokeText(text, 0, 0);
-            ctx.fillStyle = '#fff';
-            ctx.fillText(text, 0, 0);
+            ctx.strokeText(text, 0, hexY);
+            ctx.fillStyle = color.hex;
+            ctx.fillText(text, 0, hexY);
+            
             ctx.restore();
           } else {
-            // 横向显示
+            // 横向边缘（top/bottom）
+            // 文字水平居中，竖直方向上：top模式色号在上1/3、颜色名称在下1/3，bottom模式相反
+            const centerX = pos.x + pos.width / 2;
+            
+            const isBottom = edgePosition === 'bottom';
+            const hexY = isBottom ? pos.y + pos.height * 2/3 : pos.y + pos.height / 3;
+            const nameY = isBottom ? pos.y + pos.height / 3 : pos.y + pos.height * 2/3;
+            
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // 绘制颜色名称（在内侧）
+            if (showColorName) {
+              let colorName = getColorName(color.hex, colorNameLanguage);
+              if (colorNameLanguage === 'cn' && colorName.endsWith('色')) {
+                colorName = colorName.slice(0, -1);
+              }
+              ctx.strokeStyle = '#fff';
+              ctx.lineWidth = strokeWidth;
+              ctx.strokeText(colorName, centerX, nameY);
+              ctx.strokeStyle = '#000';
+              ctx.lineWidth = strokeWidth;
+              ctx.strokeText(colorName, centerX, nameY);
+              ctx.fillStyle = color.hex;
+              ctx.fillText(colorName, centerX, nameY);
+            }
+            
+            // 绘制色号（在边缘）
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = strokeWidth;
+            ctx.strokeText(text, centerX, hexY);
             ctx.strokeStyle = '#000';
             ctx.lineWidth = strokeWidth;
-            ctx.strokeText(text, centerX, centerY);
-            ctx.fillStyle = '#fff';
-            ctx.fillText(text, centerX, centerY);
+            ctx.strokeText(text, centerX, hexY);
+            ctx.fillStyle = color.hex;
+            ctx.fillText(text, centerX, hexY);
           }
         }
       }

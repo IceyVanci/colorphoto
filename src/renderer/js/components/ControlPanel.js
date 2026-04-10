@@ -136,14 +136,12 @@ class ControlPanel {
       this.edgePositionSection.style.display = 
         this.state.displayMode === 'edge' ? 'block' : 'none';
     }
-    // 颜色名称控件在纵向和方格模式显示
+    // 颜色名称控件在纵向、方格和边缘模式显示
     if (this.colorNameSection) {
-      this.colorNameSection.style.display = 
-        (this.state.displayMode === 'vertical' || this.state.displayMode === 'grid') ? 'block' : 'none';
+      this.colorNameSection.style.display = 'block';
     }
     if (this.colorNameLangSection) {
-      this.colorNameLangSection.style.display = 
-        (this.state.displayMode === 'vertical' || this.state.displayMode === 'grid') ? 'block' : 'none';
+      this.colorNameLangSection.style.display = 'block';
     }
     // 色块数量在纵向模式显示
     if (this.colorCountSection) {

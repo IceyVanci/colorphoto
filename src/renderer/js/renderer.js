@@ -14,8 +14,8 @@ const appState = {
   colorCount: 5,
   colorSort: 'brightness',
   showLabel: true,
-  showColorName: true,
-  colorNameLanguage: 'cn',
+  showColorName: false,
+  colorNameLanguage: 'en',
   blockSize: 150,
   exifData: null,
   originalFilePath: null
