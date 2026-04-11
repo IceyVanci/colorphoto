@@ -12,5 +12,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveFile: (data, defaultPath) => ipcRenderer.invoke('save-file', { data, defaultPath }),
   
   // 获取EXIF
-  getExif: (filePath) => ipcRenderer.invoke('get-exif', filePath)
+  getExif: (filePath) => ipcRenderer.invoke('get-exif', filePath),
+  
+  // 在默认浏览器打开链接
+  openExternal: (url) => ipcRenderer.invoke('open-external', url)
 });

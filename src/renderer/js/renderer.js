@@ -282,6 +282,38 @@ async function handleExport() {
   }
 }
 
+// 处理关于按钮
+const aboutBtn = document.getElementById('aboutBtn');
+const modal = document.getElementById('aboutModal');
+const closeBtn = document.getElementById('closeModal');
+
+if (aboutBtn && modal && closeBtn) {
+  aboutBtn.addEventListener('click', () => {
+    modal.style.display = 'block';
+  });
+
+  closeBtn.addEventListener('click', () => {
+    modal.style.display = 'none';
+  });
+
+  window.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.style.display = 'none';
+    }
+  });
+
+  // 处理弹窗中的链接点击，在默认浏览器打开
+  modal.addEventListener('click', (e) => {
+    if (e.target.tagName === 'A') {
+      e.preventDefault();
+      const href = e.target.getAttribute('href');
+      if (href && window.electronAPI) {
+        window.electronAPI.openExternal(href);
+      }
+    }
+  });
+}
+
 // 处理文件拖入窗口
 document.addEventListener('dragover', (e) => {
   e.preventDefault();

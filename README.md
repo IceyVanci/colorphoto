@@ -1,6 +1,6 @@
 # ColorPhoto - 图片颜色提取工具
 
-一个基于 Electron 的图片颜色提取工具，可从 JPG 图片中提取主要颜色并以多种方式可视化显示。
+这是一个基于 Electron 的图片颜色提取工具，灵感来自在十年前曾经流行过的某种图片贴纸。从导入的图片中分析出图片的主要颜色，然后以色块在图片上显示。拖动色块调整大小，不管是边框，注释，还是NSFW（？），创建属于你的专属设计！
 
 ## 功能特性
 
@@ -30,6 +30,7 @@
 ## X11 颜色列表
 
 本工具使用完整的 X11/CSS 颜色系统
+
 ## 项目结构
 
 ```
@@ -48,12 +49,12 @@ colorphoto/
 │           ├── renderer.js       # 渲染器入口
 │           ├── colorExtractor.js # 颜色提取算法
 │           ├── imageProcessor.js # 图片处理与渲染
-│           ├── exifHandler.js   # EXIF 信息处理
-│           ├── x11Colors.js     # X11 颜色数据库
+│           ├── exifHandler.js    # EXIF 信息处理
+│           ├── x11Colors.js      # X11 颜色数据库
 │           └── components/
-│               ├── DropZone.js   # 拖拽区域组件
-│               ├── ImagePreview.js # 图片预览组件
-│               └── ControlPanel.js # 控制面板组件
+│               ├── DropZone.js       # 拖拽区域组件
+│               ├── ImagePreview.js   # 图片预览组件
+│               └── ControlPanel.js   # 控制面板组件
 ├── package.json
 ├── electron-builder.json
 └── dist/                         # 编译输出目录
@@ -85,6 +86,13 @@ npm run build
    - 色号显示：显示/隐藏十六进制颜色值
    - 颜色名称：显示/隐藏颜色名称（中英文）
 4. **导出图片**：点击"导出图片"保存处理结果
+
+## 关于
+
+- **GitHub**：https://github.com/IceyVanci/colorphoto
+- **开发者**：
+  - [IceyVanci](https://github.com/IceyVanci)
+  - [koswopond](https://www.instagram.com/koswopond/)
 
 ## 许可证
 

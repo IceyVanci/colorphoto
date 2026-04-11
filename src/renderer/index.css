@@ -6,8 +6,8 @@
 }
 
 body {
-  font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
-  background-color: #1a1a2e;
+  font-family: 'MiSans', 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  background-color: #0a0a0a;
   color: #eee;
   overflow: hidden;
   height: 100vh;
@@ -46,8 +46,8 @@ body {
 
 .drop-zone:hover,
 .drop-zone.drag-over {
-  border-color: #e94560;
-  background-color: rgba(233, 69, 96, 0.1);
+  border-color: #68bbff;
+  background-color: rgba(104, 187, 255, 0.1);
 }
 
 .drop-content {
@@ -165,15 +165,15 @@ body {
 /* 控制面板 */
 .control-panel {
   width: 300px;
-  background-color: #1a1a2e;
+  background-color: #0a0a0a;
   padding: 20px;
   overflow-y: auto;
-  border-left: 1px solid #0f3460;
+  border-left: 1px solid #333;
 }
 
 .app-title {
   font-size: 24px;
-  color: #e94560;
+  color: #68bbff;
   margin-bottom: 30px;
   text-align: center;
 }
@@ -241,8 +241,8 @@ body {
 }
 
 .edge-btn.active {
-  border-color: #e94560;
-  background: rgba(233, 69, 96, 0.2);
+  border-color: #68bbff;
+  background: rgba(104, 187, 255, 0.2);
 }
 
 /* 滑块 */
@@ -262,7 +262,7 @@ input[type="range"]::-webkit-slider-thumb {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #e94560;
+  background: #68bbff;
   cursor: pointer;
   transition: transform 0.2s;
 }
@@ -275,7 +275,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   display: inline-block;
   margin-top: 8px;
   font-size: 14px;
-  color: #e94560;
+  color: #68bbff;
 }
 
 /* 开关 */
@@ -317,7 +317,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 input:checked + .slider {
-  background-color: #e94560;
+  background-color: #68bbff;
 }
 
 input:checked + .slider:before {
@@ -391,12 +391,12 @@ input:checked + .slider:before {
 }
 
 .btn-success {
-  background: #e94560;
-  color: white;
+  background: #68bbff;
+  color: #0a0a0a;
 }
 
 .btn-success:hover:not(:disabled) {
-  background: #ff6b81;
+  background: #8fcfff;
   transform: translateY(-2px);
 }
 
@@ -411,24 +411,24 @@ input:checked + .slider:before {
 }
 
 .control-panel::-webkit-scrollbar-track {
-  background: #1a1a2e;
+  background: #0a0a0a;
 }
 
 .control-panel::-webkit-scrollbar-thumb {
-  background: #0f3460;
+  background: #3e3e3e;
   border-radius: 3px;
 }
 
 .control-panel::-webkit-scrollbar-thumb:hover {
-  background: #1a4a7a;
+  background: #535353;
 }
 
 /* 排序下拉框 */
 .sort-select {
   width: 100%;
   padding: 8px 12px;
-  background: #16213e;
-  border: 1px solid #0f3460;
+  background: #2c2c2c;
+  border: 1px solid #3e3e3e;
   border-radius: 6px;
   color: #eee;
   font-size: 14px;
@@ -437,7 +437,7 @@ input:checked + .slider:before {
 
 .sort-select:focus {
   outline: none;
-  border-color: #e94560;
+  border-color: #68bbff;
 }
 
 /* 颜色数量值显示 */
@@ -445,5 +445,112 @@ input:checked + .slider:before {
   display: inline-block;
   margin-top: 8px;
   font-size: 14px;
-  color: #e94560;
+  color: #68bbff;
+}
+
+/* 关于弹窗 */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.modal-content {
+  background-color: #1a1a1a;
+  margin: 10% auto;
+  padding: 30px;
+  border: 1px solid #3e3e3e;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 450px;
+  color: #eee;
+  position: relative;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-content > h2 {
+  color: #68bbff;
+  margin-bottom: 20px;
+  font-size: 22px;
+  text-align: center;
+}
+
+.about-section {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #333;
+}
+
+.about-section:last-of-type {
+  border-bottom: none;
+}
+
+.about-section h3 {
+  color: #68bbff;
+  font-size: 14px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.about-section .subtitle {
+  color: #aaa;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.about-section .description {
+  color: #ccc;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 0;
+}
+
+.about-section p {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.about-section p:last-child {
+  margin-bottom: 0;
+}
+
+.modal-content a {
+  color: #68bbff;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.modal-content a:hover {
+  color: #8fcfff;
+  text-decoration: underline;
+}
+
+.modal-content .version {
+  color: #666;
+  font-size: 12px;
+  text-align: center;
+  margin-top: 20px;
+  margin-bottom: 0;
+}
+
+.close {
+  position: absolute;
+  right: 15px;
+  top: 10px;
+  color: #888;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close:hover {
+  color: #68bbff;
 }

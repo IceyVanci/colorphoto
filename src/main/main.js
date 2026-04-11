@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -6,10 +6,11 @@ let mainWindow;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1600,
+    height: 900,
     minWidth: 900,
     minHeight: 600,
+    title: 'ColorPhoto',
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload', 'preload.js'),
       nodeIntegration: false,
@@ -119,5 +120,16 @@ ipcMain.handle('get-exif', async (event, filePath) => {
   } catch (error) {
     console.error('Error getting EXIF:', error);
     return null;
+  }
+});
+
+// 在默认浏览器打开链接
+ipcMain.handle('open-external', async (event, url) => {
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (error) {
+    console.error('Error opening external:', error);
+    return { success: false, error: error.message };
   }
 });
