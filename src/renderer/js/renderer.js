@@ -16,9 +16,16 @@ const appState = {
   showLabel: true,
   showColorName: false,
   colorNameLanguage: 'en',
+  firstTimeShowColorName: true,  // 首次显示颜色名称标志
   blockSize: 150,
   exifData: null,
-  originalFilePath: null
+  originalFilePath: null,
+  // 每个模式独立的颜色排序状态
+  modeColors: {
+    vertical: [],
+    grid: [],
+    edge: []
+  }
 };
 
 // 组件实例
@@ -75,24 +82,33 @@ function setupCallbacks() {
   controlPanel.setCallback('onExport', handleExport);
   
   controlPanel.setCallback('onDisplayModeChange', (mode) => {
+    // 保存当前模式的颜色排序
+    appState.modeColors[appState.displayMode] = [...appState.extractedColors];
+    
     appState.displayMode = mode;
     imageProcessor.setDisplayMode(mode);
-    const sortedColors = colorExtractor.sortColors(appState.allExtractedColors, appState.colorSort);
+    
+    // 如果该模式已有保存的颜色排序，使用它；否则使用默认排序
+    const savedColors = appState.modeColors[mode];
+    const defaultSortedColors = colorExtractor.sortColors(appState.allExtractedColors, appState.colorSort);
+    const displayColors = savedColors.length > 0 ? savedColors : defaultSortedColors;
+    
     // 方格模式始终使用前4个颜色
     if (mode === 'grid') {
-      const gridColors = sortedColors.slice(0, 4);
+      const gridColors = displayColors.slice(0, 4);
       imageProcessor.setColors(gridColors);
       // 侧边栏显示全部5个颜色
-      imagePreview.setColors(sortedColors.slice(0, 5));
-      controlPanel.setColors(gridColors);
+      imagePreview.setColors(displayColors.slice(0, 5));
+      controlPanel.setColors(displayColors.slice(0, 5));
     } else {
       const limitedColors = mode === 'vertical' && appState.colorCount < 5 
-        ? sortedColors.slice(0, appState.colorCount) 
-        : sortedColors;
+        ? displayColors.slice(0, appState.colorCount) 
+        : displayColors;
+      appState.extractedColors = limitedColors;
       imageProcessor.setColors(limitedColors);
       // 侧边栏显示全部5个颜色
-      imagePreview.setColors(sortedColors.slice(0, 5));
-      controlPanel.setColors(limitedColors);
+      imagePreview.setColors(displayColors.slice(0, 5));
+      controlPanel.setColors(displayColors.slice(0, 5));
     }
     renderImage();
   });
@@ -106,19 +122,16 @@ function setupCallbacks() {
   controlPanel.setCallback('onColorCountChange', (count) => {
     appState.colorCount = count;
     colorExtractor.colorCount = count;
-    if (appState.allExtractedColors.length >= 5) {
-      const sortedColors = colorExtractor.sortColors(appState.allExtractedColors, appState.colorSort);
+    if (appState.extractedColors.length >= 5) {
       let limitedColors;
       if (count === 3) {
-        // 取5个的中间3个（index 1, 2, 3）
-        limitedColors = [sortedColors[1], sortedColors[2], sortedColors[3]];
+        // 取当前侧边栏5个颜色的中间3个
+        limitedColors = [appState.extractedColors[1], appState.extractedColors[2], appState.extractedColors[3]];
       } else {
-        limitedColors = sortedColors.slice(0, count);
+        limitedColors = appState.extractedColors.slice(0, count);
       }
       appState.extractedColors = limitedColors;
       imageProcessor.setColors(limitedColors);
-      // 侧边栏预览始终显示全部5个颜色
-      imagePreview.setColors(sortedColors.slice(0, 5));
       controlPanel.setColors(limitedColors);
       renderImage();
     }
@@ -151,6 +164,15 @@ function setupCallbacks() {
   controlPanel.setCallback('onShowColorNameChange', (show) => {
     appState.showColorName = show;
     imageProcessor.setShowColorName(show);
+    // 首次开启颜色名称时，自动设置为英文
+    if (show && appState.firstTimeShowColorName) {
+      appState.firstTimeShowColorName = false;
+      appState.colorNameLanguage = 'en';
+      imageProcessor.setColorNameLanguage('en');
+      // 更新 UI：勾选英文开关
+      const langToggle = document.getElementById('colorNameLangSelect');
+      if (langToggle) langToggle.checked = true;
+    }
     renderImage();
   });
   
@@ -162,10 +184,10 @@ function setupCallbacks() {
   
   imagePreview.setOnColorsChange((colors) => {
     appState.extractedColors = colors;
-    imageProcessor.setColors(colors);
-    // 侧边栏显示全部5个颜色（保持排序后的顺序）
-    const sortedColors = colorExtractor.sortColors(appState.allExtractedColors, appState.colorSort);
-    imagePreview.setColors(sortedColors.slice(0, 5));
+    // 直接更新 colors，不调用 setColors 以避免重置位置
+    imageProcessor.colors = colors.slice(0, appState.colorCount);
+    // 侧边栏显示全部5个颜色（保持用户拖动后的顺序）
+    imagePreview.setColors(colors.slice(0, 5));
     controlPanel.setColors(colors);
     renderImage();
   });
@@ -259,8 +281,19 @@ async function handleExport() {
   try {
     let exportData = imageProcessor.exportToDataUrl();
     
+    // 调试信息
+    console.log('=== EXIF Export Debug ===');
+    console.log('typeof piexif:', typeof piexif);
+    console.log('appState.exifData:', appState.exifData);
+    
     if (appState.exifData && typeof piexif !== 'undefined') {
+      console.log('Attempting to embed EXIF...');
       exportData = exifHandler.embedExif(exportData, appState.exifData);
+      console.log('EXIF embedded successfully');
+    } else if (!appState.exifData) {
+      console.log('No EXIF data available');
+    } else {
+      console.log('piexif is undefined');
     }
     
     const originalName = appState.originalFilePath 

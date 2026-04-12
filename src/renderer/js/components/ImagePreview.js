@@ -72,7 +72,7 @@ class ImagePreview {
       block.appendChild(label);
       
       block.addEventListener('dragstart', (e) => {
-        this.draggedIndex = index;
+        this.draggedIndex = parseInt(block.dataset.index);
         e.dataTransfer.effectAllowed = 'move';
       });
       
@@ -83,8 +83,9 @@ class ImagePreview {
       
       block.addEventListener('drop', (e) => {
         e.preventDefault();
-        if (this.draggedIndex !== null && this.draggedIndex !== index) {
-          this.swapColors(this.draggedIndex, index);
+        const targetIndex = parseInt(block.dataset.index);
+        if (this.draggedIndex !== null && this.draggedIndex !== targetIndex) {
+          this.swapColors(this.draggedIndex, targetIndex);
         }
         this.draggedIndex = null;
       });

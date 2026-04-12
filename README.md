@@ -57,6 +57,8 @@ colorphoto/
 │               └── ControlPanel.js   # 控制面板组件
 ├── package.json
 ├── electron-builder.json
+├── function_analysis.md          # 函数动作分析
+├── update.md                     # 更新日志
 └── dist/                         # 编译输出目录
 ```
 
@@ -93,6 +95,7 @@ npm run build
 - **开发者**：
   - [IceyVanci](https://github.com/IceyVanci)
   - [koswopond](https://www.instagram.com/koswopond/)
+- **AI 辅助**：本项目使用 Minimax M2.7 生成
 
 ## 许可证
 
