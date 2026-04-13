@@ -762,6 +762,9 @@ setDisplayMode(mode) {
 | 5 | 拖动后位置重置 | renderer.js | ✅ 已修复 |
 | 6 | 方格模式显示4个颜色 | renderer.js | ✅ 已修复 |
 | 7 | 模式切换不记忆排序 | renderer.js | ✅ 已修复 |
+| 8 | 导出图片EXIF信息丢失 | renderer.js, index.html | ✅ 已修复 |
+| 9 | 导入新图片时使用旧位置 | imageProcessor.js | ✅ 已修复 |
+| 10 | 导入新图片时使用旧排序 | renderer.js | ✅ 已修复 |
 
 ---
 
