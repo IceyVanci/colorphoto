@@ -1,10 +1,60 @@
 # 更新日志
 
-## 版本 1.05
+## 版本 1.07
 
 ### 版本更新
-- `package.json` - version: "1.0.5"
-- `src/renderer/index.html` - 关于弹窗版本号: "版本 1.05"
+- `package.json` - version: "1.0.7"
+- `src/renderer/index.html` - 关于弹窗版本号: "版本 1.07"
+
+### 问题修复
+
+#### 问题11：导出的JPG保留了原始图片的EXIF略缩图
+
+**问题描述：** 导出图片时，EXIF中的略缩图仍然是原图，导致Windows资源管理器预览显示的是原图而非编辑后的图。
+
+**解决方案：** 在 `exifHandler.js` 的 `embedExif()` 函数中设置 `exifObj.thumbnail = null`，清除旧略缩图。Windows会重新生成新的略缩图缓存。
+
+**修改文件：** `src/renderer/js/exifHandler.js`
+
+```javascript
+// 清除略缩图，避免显示旧图片的预览
+exifObj.thumbnail = null;
+```
+
+#### 问题12：编辑界面有照片的情况下，无法拖动新的图片导入
+
+**问题描述：** 导入图片后，dropZone被隐藏，拖拽新图片到窗口时无法加载新图片。
+
+**解决方案：** 在 `renderer.js` 中添加全局 drop 事件处理，当拖入JPG文件时调用 `handleDropZoneFileSelect()` 加载新图片。
+
+**修改文件：** `src/renderer/js/renderer.js`
+
+```javascript
+document.addEventListener('drop', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  const files = e.dataTransfer.files;
+  if (files.length > 0) {
+    const file = files[0];
+    if (file.type === 'image/jpeg' || file.type === 'image/jpg') {
+      handleDropZoneFileSelect(file);
+    }
+  }
+});
+```
+
+---
+
+## 版本 1.06
+
+### 版本更新
+- `package.json` - version: "1.0.6"
+- `src/renderer/index.html` - 关于弹窗版本号: "版本 1.06"
+
+### 问题修复
+- 问题9：导入新图片时使用旧图片的色块位置
+- 问题10：导入新图片时使用旧图片的颜色排序
 
 ---
 
@@ -266,6 +316,56 @@ controlPanel.setCallback('onDisplayModeChange', (mode) => {
 
 #### 操作步骤
 
-1. 复制文件：`node_modules/piexifjs/piexif.js` → `src/assets/piexxif.js`
+1. 复制文件：`node_modules/piexifjs/piexif.js` → `src/assets/piexif.js`
 2. 更新引用路径
+
+---
+
+### 问题9：导入新图片时使用旧图片的色块位置 - 已修复 ✅
+
+**问题：** 用户调整图片A的色块位置后，导入新图片B时，色块位置沿用了图片A保存的位置，导致在新图片上显示位置错误。
+
+**原因：** `setImage()` 调用 `initBlockPositions()` 时，没有重置 `modePositions` 中的 `userHasCustom` 标志，导致 `setColors()` 错误地使用了旧位置。
+
+**解决方案：** 在 `setImage()` 中导入新图片时，重置所有模式的 `userHasCustom` 标志。
+
+#### 文件: `src/renderer/js/imageProcessor.js`
+
+```javascript
+setImage(img) {
+  this.originalImage = img;
+  if (this.canvas) {
+    this.canvas.width = img.width;
+    this.canvas.height = img.height;
+    // 导入新图片时重置所有模式的用户自定义位置
+    Object.keys(this.modePositions).forEach(mode => {
+      this.modePositions[mode].userHasCustom = false;
+    });
+    this.initBlockPositions();
+  }
+}
+```
+
+---
+
+### 问题10：导入新图片时使用旧图片的颜色排序 - 已修复 ✅
+
+**问题：** 用户在纵向模式下调整颜色排序后，导入新图片，然后切换到其他模式再切回纵向模式，会显示旧图片的排序而非新图片的默认排序。
+
+**原因：** `loadImage()` 函数中没有重置 `appState.modeColors`，导致旧图片的排序被保留。
+
+**解决方案：** 在 `loadImage()` 中导入新图片时，重置 `appState.modeColors`。
+
+#### 文件: `src/renderer/js/renderer.js`
+
+```javascript
+appState.extractedColors = displayColors;
+// 导入新图片时重置所有模式的颜色排序状态
+appState.modeColors = {
+  vertical: [],
+  grid: [],
+  edge: []
+};
+imageProcessor.setImage(imagePreview.getImage());
+```
 ```

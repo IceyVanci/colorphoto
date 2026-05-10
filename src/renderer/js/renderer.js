@@ -362,4 +362,12 @@ document.addEventListener('dragover', (e) => {
 document.addEventListener('drop', (e) => {
   e.preventDefault();
   e.stopPropagation();
+  
+  const files = e.dataTransfer.files;
+  if (files.length > 0) {
+    const file = files[0];
+    if (file.type === 'image/jpeg' || file.type === 'image/jpg') {
+      handleDropZoneFileSelect(file);
+    }
+  }
 });

@@ -36,21 +36,25 @@ class ExifHandler {
    * @param {Object} exifObj - EXIF对象
    * @returns {string} 带有EXIF的新data URL
    */
-  embedExif(dataUrl, exifObj) {
-    try {
-      if (typeof piexif === 'undefined') {
-        console.warn('piexifjs not loaded');
+    embedExif(dataUrl, exifObj) {
+      try {
+        if (typeof piexif === 'undefined') {
+          console.warn('piexifjs not loaded');
+          return dataUrl;
+        }
+
+        // 清除略缩图，避免显示旧图片的预览
+        // piexif.js 中略缩图存储在 exifObj.thumbnail
+        exifObj.thumbnail = null;
+
+        const exifBytes = piexif.dump(exifObj);
+        const newDataUrl = piexif.insert(exifBytes, dataUrl);
+        return newDataUrl;
+      } catch (error) {
+        console.error('Error embedding EXIF:', error);
         return dataUrl;
       }
-
-      const exifBytes = piexif.dump(exifObj);
-      const newDataUrl = piexif.insert(exifBytes, dataUrl);
-      return newDataUrl;
-    } catch (error) {
-      console.error('Error embedding EXIF:', error);
-      return dataUrl;
     }
-  }
 
   /**
    * 清除EXIF信息
