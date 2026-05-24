@@ -25,7 +25,10 @@ const appState = {
     vertical: [],
     grid: [],
     edge: []
-  }
+  },
+  // 队列相关状态
+  imageQueue: [],
+  currentQueueIndex: -1
 };
 
 // 组件实例
@@ -212,12 +215,17 @@ async function reExtractColors() {
   renderImage();
 }
 
-// 处理图片导入
+// 处理图片导入（支持多文件）
 async function handleImport() {
   try {
     const result = await window.electronAPI.openFileDialog();
-    if (result) {
-      await loadImage(result);
+    if (result && result.length > 0) {
+      // 转换对象格式为队列需要的格式
+      const files = result.map(item => ({
+        path: item.path,
+        dataUrl: item.data  // 使用 dataUrl 字段
+      }));
+      addFilesToQueue(files);
     }
   } catch (error) {
     console.error('Error importing image:', error);
@@ -255,6 +263,16 @@ async function loadImage(result) {
       grid: [],
       edge: []
     };
+    
+    // 设置队列状态
+    appState.imageQueue = [{
+      path: path,
+      dataUrl: data,
+      exifData: exifData,
+      colors: colors
+    }];
+    appState.currentQueueIndex = 0;
+    
     imageProcessor.setImage(imagePreview.getImage());
     imageProcessor.setColors(displayColors);
     imagePreview.setColors(displayColors);
@@ -264,6 +282,7 @@ async function loadImage(result) {
     
     document.getElementById('dropZone').style.display = 'none';
     imagePreview.show();
+    document.getElementById('queuePanel').style.display = 'none';
     
   } catch (error) {
     console.error('Error loading image:', error);
@@ -363,11 +382,180 @@ document.addEventListener('drop', (e) => {
   e.preventDefault();
   e.stopPropagation();
   
-  const files = e.dataTransfer.files;
+  const files = Array.from(e.dataTransfer.files).filter(f => 
+    f.type === 'image/jpeg' || f.type === 'image/jpg'
+  );
+  
   if (files.length > 0) {
-    const file = files[0];
-    if (file.type === 'image/jpeg' || file.type === 'image/jpg') {
-      handleDropZoneFileSelect(file);
-    }
+    addFilesToQueue(files);
   }
 });
+
+// ========== 队列功能 ==========
+
+// 添加文件到队列（支持 File 对象或已有 dataUrl 的对象）
+function addFilesToQueue(files) {
+  let loadedCount = 0;
+  const totalFiles = files.length;
+  
+  files.forEach(file => {
+    // 如果已有 dataUrl（从文件对话框导入），直接使用
+    if (file.dataUrl) {
+      const queueItem = {
+        path: file.path || file.name,
+        dataUrl: file.dataUrl,
+        exifData: null,
+        colors: []
+      };
+      appState.imageQueue.push(queueItem);
+      loadedCount++;
+      
+      if (appState.currentQueueIndex === -1) {
+        appState.currentQueueIndex = appState.imageQueue.length - 1;
+        loadQueueImageFromQueue(appState.currentQueueIndex);
+      }
+      
+      if (loadedCount === totalFiles) {
+        document.getElementById('queuePanel').style.display = 
+          appState.imageQueue.length > 1 ? 'flex' : 'none';
+        updateQueuePanel();
+      }
+      return;
+    }
+    
+    // 如果是 File 对象（拖入），使用 FileReader
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const queueItem = {
+        path: file.path || file.name,
+        dataUrl: e.target.result,
+        exifData: null,
+        colors: []
+      };
+      appState.imageQueue.push(queueItem);
+      loadedCount++;
+      
+      if (appState.currentQueueIndex === -1) {
+        appState.currentQueueIndex = appState.imageQueue.length - 1;
+        loadQueueImageFromQueue(appState.currentQueueIndex);
+      }
+      
+      if (loadedCount === totalFiles) {
+        document.getElementById('queuePanel').style.display = 
+          appState.imageQueue.length > 1 ? 'flex' : 'none';
+        updateQueuePanel();
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// 从队列加载图片
+async function loadQueueImageFromQueue(index) {
+  if (index < 0 || index >= appState.imageQueue.length) return;
+  
+  const item = appState.imageQueue[index];
+  appState.currentQueueIndex = index;
+  
+  try {
+    const exifData = await window.electronAPI.getExif(item.path);
+    item.exifData = exifData;
+    appState.exifData = exifData;
+    appState.originalFilePath = item.path;
+    
+    await imagePreview.loadImage(item.dataUrl);
+    const canvas = imagePreview.getCanvas();
+    const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+    const colors = colorExtractor.extract(imageData);
+    
+    item.colors = colors;
+    appState.allExtractedColors = colors;
+    
+    const sortedColors = colorExtractor.sortColors(colors, appState.colorSort);
+    const displayColors = sortedColors.slice(0, appState.colorCount);
+    
+    appState.extractedColors = displayColors;
+    appState.modeColors = { vertical: [], grid: [], edge: [] };
+    imageProcessor.setImage(imagePreview.getImage());
+    imageProcessor.setColors(displayColors);
+    imagePreview.setColors(displayColors);
+    controlPanel.setColors(displayColors);
+    controlPanel.setExportEnabled(true);
+    
+    document.getElementById('dropZone').style.display = 'none';
+    imagePreview.show();
+    
+    document.getElementById('queuePanel').style.display = 
+      appState.imageQueue.length > 1 ? 'flex' : 'none';
+    
+    updateQueuePanel();
+    renderImage();
+  } catch (error) {
+    console.error('Error loading queue image:', error);
+  }
+}
+
+// 更新队列面板
+function updateQueuePanel() {
+  const queueList = document.getElementById('queueList');
+  if (!queueList) return;
+  
+  queueList.innerHTML = '';
+  appState.imageQueue.forEach((item, index) => {
+    const div = document.createElement('div');
+    div.className = 'queue-item' + (index === appState.currentQueueIndex ? ' active' : '');
+    div.onclick = () => loadQueueImageFromQueue(index);
+    
+    const img = document.createElement('img');
+    img.src = item.dataUrl;
+    div.appendChild(img);
+    queueList.appendChild(div);
+  });
+}
+
+// 重置到初始状态
+function resetToInitialState() {
+  appState.originalImage = null;
+  appState.processedImage = null;
+  appState.extractedColors = [];
+  appState.allExtractedColors = [];
+  appState.exifData = null;
+  appState.originalFilePath = null;
+  appState.currentQueueIndex = -1;
+  appState.imageQueue = [];
+  appState.modeColors = { vertical: [], grid: [], edge: [] };
+  
+  imageProcessor.setImage(null);
+  imagePreview.hide();
+  controlPanel.setExportEnabled(false);
+  controlPanel.setColors([]);
+  
+  document.getElementById('dropZone').style.display = 'flex';
+  document.getElementById('queuePanel').style.display = 'none';
+  
+  renderImage();
+}
+
+// 关闭按钮处理
+function handleClose() {
+  if (appState.currentQueueIndex === -1) return;
+  
+  const removedIndex = appState.currentQueueIndex;
+  appState.imageQueue.splice(removedIndex, 1);
+  
+  if (appState.imageQueue.length === 0) {
+    resetToInitialState();
+  } else {
+    if (removedIndex >= appState.imageQueue.length) {
+      appState.currentQueueIndex = appState.imageQueue.length - 1;
+    }
+    loadQueueImageFromQueue(appState.currentQueueIndex);
+  }
+  
+  document.getElementById('queuePanel').style.display = 
+    appState.imageQueue.length > 1 ? 'flex' : 'none';
+  updateQueuePanel();
+}
+
+// 绑定关闭按钮
+document.getElementById('closeBtn').addEventListener('click', handleClose);

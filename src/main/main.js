@@ -44,25 +44,26 @@ app.on('window-all-closed', () => {
   }
 });
 
-// 打开文件对话框
+// 打开文件对话框（支持多文件）
 ipcMain.handle('open-file-dialog', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openFile'],
+    properties: ['openFile', 'multiSelections'],
     filters: [
       { name: 'Images', extensions: ['jpg', 'jpeg'] }
     ]
   });
 
   if (!result.canceled && result.filePaths.length > 0) {
-    const filePath = result.filePaths[0];
-    const imageBuffer = fs.readFileSync(filePath);
-    const base64 = imageBuffer.toString('base64');
-    const mimeType = 'image/jpeg';
-    
-    return {
-      path: filePath,
-      data: `data:${mimeType};base64,${base64}`
-    };
+    const files = result.filePaths.map(filePath => {
+      const imageBuffer = fs.readFileSync(filePath);
+      const base64 = imageBuffer.toString('base64');
+      const mimeType = 'image/jpeg';
+      return {
+        path: filePath,
+        data: `data:${mimeType};base64,${base64}`
+      };
+    });
+    return files;
   }
   return null;
 });
