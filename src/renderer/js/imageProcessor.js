@@ -41,6 +41,16 @@ class ImageProcessor {
 
   setImage(img) {
     this.originalImage = img;
+    if (!img) {
+      // img为null时清空画布
+      if (this.canvas) {
+        const ctx = this.canvas.getContext('2d');
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      }
+      this.blockPositions = [];
+      this.colors = [];
+      return;
+    }
     if (this.canvas) {
       this.canvas.width = img.width;
       this.canvas.height = img.height;

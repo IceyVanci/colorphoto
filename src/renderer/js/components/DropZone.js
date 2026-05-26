@@ -24,13 +24,15 @@ class DropZone {
       }
     });
     
-    // 文件选择事件
+    // 文件选择事件（支持多文件）
     if (this.fileInput) {
       this.fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file && this.isValidImage(file)) {
-          this.onFileSelect(file);
+        const validFiles = Array.from(e.target.files).filter(file => this.isValidImage(file));
+        if (validFiles.length > 0) {
+          this.onFileSelect(validFiles.length === 1 ? validFiles[0] : validFiles);
         }
+        // 重置file input的值，以便再次选择相同文件
+        this.fileInput.value = '';
       });
     }
     
@@ -52,12 +54,9 @@ class DropZone {
       e.stopPropagation();
       this.element.classList.remove('drag-over');
       
-      const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        const file = files[0];
-        if (this.isValidImage(file)) {
-          this.onFileSelect(file);
-        }
+      const validFiles = Array.from(e.dataTransfer.files).filter(file => this.isValidImage(file));
+      if (validFiles.length > 0) {
+        this.onFileSelect(validFiles.length === 1 ? validFiles[0] : validFiles);
       }
     });
     

@@ -46,26 +46,38 @@ app.on('window-all-closed', () => {
 
 // 打开文件对话框（支持多文件）
 ipcMain.handle('open-file-dialog', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openFile', 'multiSelections'],
-    filters: [
-      { name: 'Images', extensions: ['jpg', 'jpeg'] }
-    ]
-  });
-
-  if (!result.canceled && result.filePaths.length > 0) {
-    const files = result.filePaths.map(filePath => {
-      const imageBuffer = fs.readFileSync(filePath);
-      const base64 = imageBuffer.toString('base64');
-      const mimeType = 'image/jpeg';
-      return {
-        path: filePath,
-        data: `data:${mimeType};base64,${base64}`
-      };
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        { name: 'Images', extensions: ['jpg', 'jpeg'] }
+      ]
     });
-    return files;
+
+    console.log('File dialog result:', {
+      canceled: result.canceled,
+      filePathsCount: result.filePaths.length,
+      filePaths: result.filePaths
+    });
+
+    if (!result.canceled && result.filePaths.length > 0) {
+      const files = result.filePaths.map(filePath => {
+        const imageBuffer = fs.readFileSync(filePath);
+        const base64 = imageBuffer.toString('base64');
+        const mimeType = 'image/jpeg';
+        return {
+          path: filePath,
+          data: `data:${mimeType};base64,${base64}`
+        };
+      });
+      console.log('Returning files count:', files.length);
+      return files;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error in open-file-dialog:', error);
+    return null;
   }
-  return null;
 });
 
 // 读取文件（用于拖拽）

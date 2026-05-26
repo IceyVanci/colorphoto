@@ -61,18 +61,45 @@ function initComponents() {
   });
 }
 
-// 处理拖拽区域的文件选择
-async function handleDropZoneFileSelect(file) {
+// 处理拖拽区域的文件选择（支持单文件或多文件）
+async function handleDropZoneFileSelect(fileOrFiles) {
   try {
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const data = event.target.result;
-      await loadImage({
-        path: file.path || file.name,
-        data: data
+    // 如果是单个文件，直接使用loadImage
+    if (fileOrFiles instanceof File) {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const data = event.target.result;
+        await loadImage({
+          path: fileOrFiles.path || fileOrFiles.name,
+          data: data
+        });
+      };
+      reader.readAsDataURL(fileOrFiles);
+      return;
+    }
+    
+    // 如果是数组（多个文件），使用队列处理
+    if (Array.isArray(fileOrFiles) && fileOrFiles.length > 0) {
+      // 使用FileReader读取所有文件
+      const loadedFiles = [];
+      let loadedCount = 0;
+      
+      fileOrFiles.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          loadedFiles[index] = {
+            path: file.path || file.name,
+            dataUrl: event.target.result
+          };
+          loadedCount++;
+          
+          if (loadedCount === fileOrFiles.length) {
+            addFilesToQueue(loadedFiles);
+          }
+        };
+        reader.readAsDataURL(file);
       });
-    };
-    reader.readAsDataURL(file);
+    }
   } catch (error) {
     console.error('Error reading file:', error);
     alert('读取文件失败: ' + error.message);
@@ -218,14 +245,20 @@ async function reExtractColors() {
 // 处理图片导入（支持多文件）
 async function handleImport() {
   try {
+    console.log('Opening file dialog...');
     const result = await window.electronAPI.openFileDialog();
-    if (result && result.length > 0) {
+    console.log('File dialog returned:', result);
+    
+    if (result && Array.isArray(result) && result.length > 0) {
+      console.log('Importing', result.length, 'files');
       // 转换对象格式为队列需要的格式
       const files = result.map(item => ({
         path: item.path,
         dataUrl: item.data  // 使用 dataUrl 字段
       }));
       addFilesToQueue(files);
+    } else {
+      console.log('No files selected or result is null/empty');
     }
   } catch (error) {
     console.error('Error importing image:', error);
@@ -515,6 +548,7 @@ function updateQueuePanel() {
 
 // 重置到初始状态
 function resetToInitialState() {
+  console.log('Resetting to initial state...');
   appState.originalImage = null;
   appState.processedImage = null;
   appState.extractedColors = [];
@@ -525,35 +559,91 @@ function resetToInitialState() {
   appState.imageQueue = [];
   appState.modeColors = { vertical: [], grid: [], edge: [] };
   
-  imageProcessor.setImage(null);
-  imagePreview.hide();
-  controlPanel.setExportEnabled(false);
-  controlPanel.setColors([]);
+  // 重置图像处理器
+  if (imageProcessor) {
+    imageProcessor.setImage(null);
+  }
   
-  document.getElementById('dropZone').style.display = 'flex';
-  document.getElementById('queuePanel').style.display = 'none';
+  // 隐藏图像预览
+  if (imagePreview) {
+    imagePreview.hide();
+  }
   
-  renderImage();
+  // 重置控制面板
+  if (controlPanel) {
+    controlPanel.setExportEnabled(false);
+    controlPanel.setColors([]);
+  }
+  
+  // 显示拖拽区域
+  const dropZone = document.getElementById('dropZone');
+  if (dropZone) {
+    dropZone.style.display = 'flex';
+  }
+  
+  // 隐藏队列面板
+  const queuePanel = document.getElementById('queuePanel');
+  if (queuePanel) {
+    queuePanel.style.display = 'none';
+  }
+  
+  // 隐藏预览容器
+  const previewContainer = document.getElementById('previewContainer');
+  if (previewContainer) {
+    previewContainer.style.display = 'none';
+  }
+  
+  // 清除颜色块
+  const colorBlocks = document.getElementById('colorBlocks');
+  if (colorBlocks) {
+    colorBlocks.innerHTML = '';
+  }
+  
+  // 重置画布
+  const canvas = document.getElementById('previewCanvas');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  
+  console.log('Reset complete');
 }
 
 // 关闭按钮处理
 function handleClose() {
+  console.log('Close button clicked, currentQueueIndex:', appState.currentQueueIndex);
   if (appState.currentQueueIndex === -1) return;
   
   const removedIndex = appState.currentQueueIndex;
+  console.log('Removing image at index:', removedIndex, 'from queue of', appState.imageQueue.length);
+  
+  // 从队列中移除当前图片
   appState.imageQueue.splice(removedIndex, 1);
   
   if (appState.imageQueue.length === 0) {
+    // 队列为空，重置到初始状态
+    console.log('Queue empty, resetting to initial state');
     resetToInitialState();
   } else {
+    // 队列中还有图片，加载下一张
+    console.log('Queue has', appState.imageQueue.length, 'images remaining');
+    
+    // 如果移除的是最后一个，调整索引
     if (removedIndex >= appState.imageQueue.length) {
       appState.currentQueueIndex = appState.imageQueue.length - 1;
+    } else {
+      // 否则保持当前索引（指向下一个图片）
+      appState.currentQueueIndex = removedIndex;
     }
+    
     loadQueueImageFromQueue(appState.currentQueueIndex);
   }
   
-  document.getElementById('queuePanel').style.display = 
-    appState.imageQueue.length > 1 ? 'flex' : 'none';
+  // 更新队列面板显示
+  const queuePanel = document.getElementById('queuePanel');
+  if (queuePanel) {
+    queuePanel.style.display = appState.imageQueue.length > 1 ? 'flex' : 'none';
+  }
   updateQueuePanel();
 }
 
