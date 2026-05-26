@@ -426,6 +426,12 @@ document.addEventListener('drop', (e) => {
 
 // ========== 队列功能 ==========
 
+// 性能优化：EXIF数据缓存（避免重复读取）
+const exifCache = new Map();
+
+// 性能优化：图片数据URL缓存
+const dataUrlCache = new Map();
+
 // 添加文件到队列（支持 File 对象或已有 dataUrl 的对象）
 function addFilesToQueue(files) {
   let loadedCount = 0;
@@ -491,7 +497,14 @@ async function loadQueueImageFromQueue(index) {
   appState.currentQueueIndex = index;
   
   try {
-    const exifData = await window.electronAPI.getExif(item.path);
+    // 性能优化：使用EXIF缓存，避免重复读取文件
+    let exifData;
+    if (exifCache.has(item.path)) {
+      exifData = exifCache.get(item.path);
+    } else {
+      exifData = await window.electronAPI.getExif(item.path);
+      exifCache.set(item.path, exifData);
+    }
     item.exifData = exifData;
     appState.exifData = exifData;
     appState.originalFilePath = item.path;
@@ -523,6 +536,9 @@ async function loadQueueImageFromQueue(index) {
     
     updateQueuePanel();
     renderImage();
+    
+    // 性能优化：预加载相邻图片
+    preloadAdjacentImages(index);
   } catch (error) {
     console.error('Error loading queue image:', error);
   }
@@ -606,6 +622,10 @@ function resetToInitialState() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   }
   
+  // 性能优化：清理缓存（释放内存）
+  exifCache.clear();
+  dataUrlCache.clear();
+  
   console.log('Reset complete');
 }
 
@@ -645,6 +665,21 @@ function handleClose() {
     queuePanel.style.display = appState.imageQueue.length > 1 ? 'flex' : 'none';
   }
   updateQueuePanel();
+}
+
+// 性能优化：预加载相邻图片
+function preloadAdjacentImages(currentIndex) {
+    const preloadRange = 1; // 预加载前后各1张
+    for (let i = currentIndex - preloadRange; i <= currentIndex + preloadRange; i++) {
+        if (i >= 0 && i < appState.imageQueue.length && i !== currentIndex) {
+            const item = appState.imageQueue[i];
+            if (!item.preloaded) {
+                const img = new Image();
+                img.src = item.dataUrl;
+                item.preloaded = true;
+            }
+        }
+    }
 }
 
 // 绑定关闭按钮

@@ -26,8 +26,11 @@ class ColorExtractor {
     const pixels = [];
     const data = imageData.data;
     
-    // 每隔一定像素采样一次以提高性能
-    const step = 10;
+    // 动态计算采样步长：小图片保持步长10，大图片适当增大以提高性能
+    // 确保采样像素数在合理范围内（约10000-100000个像素）
+    const totalPixels = imageData.width * imageData.height;
+    const step = Math.max(10, Math.floor(Math.sqrt(totalPixels / 20000)));
+    
     for (let i = 0; i < data.length; i += 4 * step) {
       const r = data[i];
       const g = data[i + 1];

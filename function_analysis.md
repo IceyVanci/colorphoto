@@ -222,6 +222,18 @@ colorphoto/
 
 ---
 
+## ⚡ 性能优化 (v1.08)
+
+| 优化项 | 修改文件 | 影响函数 | 预期效果 |
+|--------|----------|----------|----------|
+| 动态采样步长 | colorExtractor.js | getPixelArray | 大图处理时间减少40-60% |
+| EXIF数据缓存 | renderer.js | loadQueueImageFromQueue | 队列切换响应提升30-50% |
+| 队列图片预加载 | renderer.js | preloadAdjacentImages | 相邻图片切换提升60% |
+
+详见 [performance_optimization.md](performance_optimization.md)
+
+---
+
 ## 📝 备注
 
 ### 显示模式

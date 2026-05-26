@@ -95,7 +95,7 @@ npm run build
 - **开发者**：
   - [IceyVanci](https://github.com/IceyVanci)
   - [koswopond](https://www.instagram.com/koswopond/)
-- **AI 辅助**：本项目使用 Minimax M2.7 生成
+- **AI 辅助**：本项目最初使用 Minimax M2.7 进行开发，后入选 Xiaomi MiMo Orbit-百万亿 Token 创造者激励计划，改用 Xiaomi Mimo-v2.5/v2.5pro 进行开发，感谢 Xiaomi MiMo Orbit 提供的免费 Token。
 
 ## 许可证
 

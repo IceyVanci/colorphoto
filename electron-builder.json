@@ -7,7 +7,7 @@
   "win": {
     "target": [
       {
-        "target": "nsis",
+        "target": "portable",
         "arch": ["x64"]
       }
     ],
@@ -15,12 +15,8 @@
     "signingHashTypes": [],
     "sign": false
   },
-  "nsis": {
-    "oneClick": false,
-    "perMachine": false,
-    "allowToChangeInstallationDirectory": true,
-    "createDesktopShortcut": true,
-    "createStartMenuShortcut": true
+  "portable": {
+    "artifactName": "ColorPhoto.exe"
   },
   "files": [
     "src/**/*",
