@@ -50,7 +50,7 @@ ipcMain.handle('open-file-dialog', async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openFile', 'multiSelections'],
       filters: [
-        { name: 'Images', extensions: ['jpg', 'jpeg'] }
+        { name: 'Images', extensions: ['jpg', 'jpeg', 'png'] }
       ]
     });
 
@@ -64,7 +64,8 @@ ipcMain.handle('open-file-dialog', async () => {
       const files = result.filePaths.map(filePath => {
         const imageBuffer = fs.readFileSync(filePath);
         const base64 = imageBuffer.toString('base64');
-        const mimeType = 'image/jpeg';
+        const ext = path.extname(filePath).toLowerCase();
+        const mimeType = ext === '.png' ? 'image/png' : 'image/jpeg';
         return {
           path: filePath,
           data: `data:${mimeType};base64,${base64}`
@@ -85,7 +86,8 @@ ipcMain.handle('read-file', async (event, filePath) => {
   try {
     const imageBuffer = fs.readFileSync(filePath);
     const base64 = imageBuffer.toString('base64');
-    const mimeType = 'image/jpeg';
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeType = ext === '.png' ? 'image/png' : 'image/jpeg';
     
     return {
       path: filePath,
@@ -102,7 +104,7 @@ ipcMain.handle('save-file', async (event, { data, defaultPath }) => {
   const result = await dialog.showSaveDialog(mainWindow, {
     defaultPath: defaultPath || 'colored_image.jpg',
     filters: [
-      { name: 'JPEG Image', extensions: ['jpg', 'jpeg'] }
+      { name: 'Image', extensions: ['jpg', 'jpeg', 'png'] }
     ]
   });
 
@@ -123,6 +125,10 @@ ipcMain.handle('save-file', async (event, { data, defaultPath }) => {
 
 // 获取文件EXIF信息
 ipcMain.handle('get-exif', async (event, filePath) => {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === '.png') {
+    return null; // PNG 不支持标准 EXIF
+  }
   try {
     const piexif = require('piexifjs');
     const imageData = fs.readFileSync(filePath);

@@ -702,8 +702,11 @@ class ImageProcessor {
     });
   }
 
-  exportToDataUrl() {
+  exportToDataUrl(format = 'image/jpeg') {
     if (!this.canvas) return null;
+    if (format === 'image/png') {
+      return this.canvas.toDataURL('image/png');
+    }
     return this.canvas.toDataURL('image/jpeg', 0.95);
   }
 

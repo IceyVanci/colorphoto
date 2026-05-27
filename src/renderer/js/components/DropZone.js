@@ -66,7 +66,7 @@ class DropZone {
   }
   
   isValidImage(file) {
-    const validTypes = ['image/jpeg', 'image/jpg'];
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
     return validTypes.includes(file.type);
   }
   

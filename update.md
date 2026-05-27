@@ -1,5 +1,131 @@
 # 更新日志
 
+## 版本 1.09
+
+### 版本更新
+- `package.json` - version: "1.0.9"
+- `src/renderer/index.html` - 关于弹窗版本号: "版本 1.09"
+- `package.json` - description 更新为 "从JPG/PNG图片中提取主要颜色并可视化显示"
+
+### 新功能
+
+#### PNG 格式支持
+
+**问题描述：** 之前仅支持 JPG/JPEG 格式，无法导入和导出 PNG 文件。
+
+**解决方案：** 修改 5 个文件，全面支持 PNG 格式的导入、显示、颜色提取和导出。
+
+**修改文件清单：**
+
+1. `src/renderer/index.html` - accept 属性添加 `image/png`，提示文字更新为"JPG/PNG图片"
+2. `src/main/main.js`:
+   - 文件对话框 filters 添加 `'png'`
+   - `open-file-dialog` 和 `read-file` 的 mimeType 根据扩展名动态判断
+   - `get-exif` PNG 文件直接返回 null（PNG 不支持标准 EXIF）
+   - `save-file` filters 添加 `'png'`
+3. `src/renderer/js/components/DropZone.js` - `isValidImage` 添加 `image/png`
+4. `src/renderer/js/renderer.js`:
+   - 全局 drop 事件过滤器添加 `image/png`
+   - `handleExport` 根据原始文件类型选择导出格式（PNG→PNG，JPG→JPG），PNG 跳过 EXIF 嵌入
+5. `src/renderer/js/imageProcessor.js` - `exportToDataUrl` 添加 `format` 参数支持
+
+**关键设计：**
+- PNG 透明通道：颜色提取已跳过透明像素（`a < 128`），无需额外修改
+- PNG EXIF：PNG 不支持标准 EXIF，导入时返回 null，导出时跳过嵌入
+- 导出格式：根据原始文件类型自动选择（PNG → PNG，JPG → JPG）
+
+---
+
+## 版本 1.08
+
+### 版本更新
+- `package.json` - version: "1.0.8"
+- `src/renderer/index.html` - 关于弹窗版本号: "版本 1.08"
+- `src/renderer/index.html` - 添加致谢信息
+
+### 新功能
+
+#### 多选导入支持
+**问题描述：** 通过"导入图片"按钮和拖拽区域均无法选择多个文件。
+
+**解决方案：**
+
+1. `src/renderer/index.html` - 给 `<input type="file">` 添加 `multiple` 属性
+2. `src/renderer/js/components/DropZone.js` - `change` 事件处理多个文件，`drop` 事件处理多个文件
+3. `src/renderer/js/renderer.js` - `handleDropZoneFileSelect` 支持数组参数，使用队列处理
+4. `src/main/main.js` - 文件对话框已配置 `multiSelections`，添加调试日志
+
+```javascript
+// DropZone.js - 文件选择事件（支持多文件）
+this.fileInput.addEventListener('change', (e) => {
+    const validFiles = Array.from(e.target.files).filter(file => this.isValidImage(file));
+    if (validFiles.length > 0) {
+        this.onFileSelect(validFiles.length === 1 ? validFiles[0] : validFiles);
+    }
+    this.fileInput.value = '';
+});
+```
+
+#### UI 标签优化
+- 色号 → 色号显示
+- 名称 → 名称显示
+- 英文 → 英文名称
+
+### 问题修复
+
+#### 问题13：单文件关闭后未恢复初始状态
+
+**问题描述：** 导入单张图片后点击关闭按钮，图片预览未消失，拖拽区域未重新显示。
+
+**原因：** `resetToInitialState()` 调用 `imageProcessor.setImage(null)` 时，`setImage` 方法直接访问 `img.width` 导致 null 错误。
+
+**解决方案：** 在 `imageProcessor.js` 的 `setImage` 方法中添加 null 检查。
+
+**修改文件：** `src/renderer/js/imageProcessor.js`
+
+```javascript
+setImage(img) {
+    this.originalImage = img;
+    if (!img) {
+        // img为null时清空画布
+        if (this.canvas) {
+            const ctx = this.canvas.getContext('2d');
+            ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+        this.blockPositions = [];
+        this.colors = [];
+        return;
+    }
+    // ... 原有逻辑
+}
+```
+
+### 性能优化
+
+#### 动态采样步长
+**修改文件：** `src/renderer/js/colorExtractor.js`
+
+`getPixelArray` 函数根据图片尺寸动态计算采样步长，小图片保持步长10，大图片适当增大以提高性能。
+
+```javascript
+const totalPixels = imageData.width * imageData.height;
+const step = Math.max(10, Math.floor(Math.sqrt(totalPixels / 20000)));
+```
+
+#### EXIF 数据缓存
+**修改文件：** `src/renderer/js/renderer.js`
+
+添加 `exifCache` Map，首次读取 EXIF 后缓存结果，队列切换时直接使用缓存，避免重复读取文件系统。
+
+#### 队列图片预加载
+**修改文件：** `src/renderer/js/renderer.js`
+
+添加 `preloadAdjacentImages` 函数，加载当前图片时自动预加载前后各1张图片。
+
+详见 `performance_optimization.md`
+
+---
+
 ## 版本 1.07
 
 ### 版本更新

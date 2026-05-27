@@ -1,7 +1,7 @@
 {
   "name": "colorphoto",
-  "version": "1.0.7",
-  "description": "图片颜色提取工具 - 从JPG图片中提取主要颜色并可视化显示",
+  "version": "1.0.9",
+  "description": "图片颜色提取工具 - 从JPG/PNG图片中提取主要颜色并可视化显示",
   "main": "src/main/main.js",
   "scripts": {
     "dev": "electron .",

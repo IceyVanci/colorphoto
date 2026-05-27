@@ -337,28 +337,26 @@ function renderImage() {
 // 处理导出
 async function handleExport() {
   try {
-    let exportData = imageProcessor.exportToDataUrl();
+    // 根据原始文件类型决定导出格式
+    const isPng = appState.originalFilePath && 
+      appState.originalFilePath.toLowerCase().endsWith('.png');
     
-    // 调试信息
-    console.log('=== EXIF Export Debug ===');
-    console.log('typeof piexif:', typeof piexif);
-    console.log('appState.exifData:', appState.exifData);
+    // PNG 使用无损导出，JPEG 使用 95% 质量
+    let exportData = imageProcessor.exportToDataUrl(isPng ? 'image/png' : 'image/jpeg');
     
-    if (appState.exifData && typeof piexif !== 'undefined') {
+    // 仅 JPEG 嵌入 EXIF
+    if (!isPng && appState.exifData && typeof piexif !== 'undefined') {
       console.log('Attempting to embed EXIF...');
       exportData = exifHandler.embedExif(exportData, appState.exifData);
       console.log('EXIF embedded successfully');
-    } else if (!appState.exifData) {
-      console.log('No EXIF data available');
-    } else {
-      console.log('piexif is undefined');
     }
     
     const originalName = appState.originalFilePath 
       ? appState.originalFilePath.split(/[/\\]/).pop()
       : 'image.jpg';
     const baseName = originalName.replace(/\.[^.]+$/, '');
-    const defaultName = baseName + '_colored.jpg';
+    const ext = isPng ? '.png' : '.jpg';
+    const defaultName = baseName + '_colored' + ext;
     
     const result = await window.electronAPI.saveFile(exportData, defaultName);
     
@@ -416,7 +414,7 @@ document.addEventListener('drop', (e) => {
   e.stopPropagation();
   
   const files = Array.from(e.dataTransfer.files).filter(f => 
-    f.type === 'image/jpeg' || f.type === 'image/jpg'
+    f.type === 'image/jpeg' || f.type === 'image/jpg' || f.type === 'image/png'
   );
   
   if (files.length > 0) {
